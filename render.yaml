@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: bynilo-ads-tv
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: EMISION_TV_ACTIVA
+        value: false
+      - key: DATA_DIR
+        value: ./data

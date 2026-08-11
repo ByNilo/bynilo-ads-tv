@@ -1,0 +1,80 @@
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const app = express();
+
+app.use(express.json());
+
+// Ruta donde Just Broadcast lee los archivos de texto
+const JUST_BROADCAST_FOLDER = 'C:/JustBroadcast/Output'; 
+
+// Función para validar el RUT chileno (Módulo 11)
+function validarRUT(rutCompleto) {
+    if (!rutCompleto) return false;
+    rutCompleto = rutCompleto.replace(/\./g, '').replace(/\-/g, '');
+    let cuerpo = rutCompleto.slice(0, -1);
+    let dv = rutCompleto.slice(-1).toUpperCase();
+    
+    let suma = 0;
+    let multiplo = 2;
+    
+    for (let i = 1; i <= cuerpo.length; i++) {
+        let index = multiplo * cuerpo.charAt(cuerpo.length - i);
+        suma = suma + index;
+        multiplo = multiplo < 7 ? multiplo + 1 : 2;
+    }
+    
+    let dvEsperado = 11 - (suma % 11);
+    let dvFinal = dvEsperado === 11 ? '0' : dvEsperado === 10 ? 'K' : dvEsperado.toString();
+    
+    return dvFinal === dv;
+}
+
+// Endpoint que recibe el formulario de la web
+app.post('/api/agendar', async (req, res) => {
+    const { rut, negocio, textoOferta, horarioElegido } = req.body;
+
+    // 1. Validar RUT
+    if (!validarRUT(rut)) {
+        return res.status(400).json({ error: 'El RUT ingresado no es válido.' });
+    }
+
+    // 2. Validar tamaño del texto (Máximo 150 caracteres)
+    if (textoOferta.length > 150) {
+        return res.status(400).json({ error: 'El texto supera los 150 caracteres permitidos.' });
+    }
+
+    // 3. Simulación de filtro de IA (Aquí conectarías OpenAI/Vision API)
+    // Si la IA detecta medios de comunicación, lo manda a semáforo amarillo (revisión manual)
+    const esMedioComunicacion = false; // Esto lo evalúa la IA
+
+    if (esMedioComunicacion) {
+        return res.status(200).json({ 
+            estado: 'revision', 
+            mensaje: 'Tu anuncio ha quedado en revisión editorial por pertenecer a la categoría de medios.' 
+        });
+    }
+
+    // 4. Lógica de 45 segundos y escritura para Just Broadcast
+    try {
+        // Escribe los archivos .txt que lee Just Broadcast
+        fs.writeFileSync(path.join(JUST_BROADCAST_FOLDER, 'negocio.txt'), negocio);
+        fs.writeFileSync(path.join(JUST_BROADCAST_FOLDER, 'oferta.txt'), textoOferta);
+
+        // Aquí el servidor agendará un "Cron Job" o temporizador exacto 
+        // para que a la hora elegida (ej. 13:05:00) active el banner por 15 segundos
+        // y a los 15 segundos limpie los archivos automáticamente respetando la pausa de 30s.
+
+        return res.status(200).json({ 
+            estado: 'exito', 
+            mensaje: Espacio confirmado con éxito para las ${horarioElegido}. 
+        });
+
+    } catch (error) {
+        return res.status(500).json({ error: 'Error interno al procesar la emisión con Just Broadcast.' });
+    }
+});
+
+app.listen(3000, () => {
+    console.log('Servidor de BYNILO ADS TV corriendo en el puerto 3000');
+});

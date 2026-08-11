@@ -1,0 +1,91 @@
+.app {
+  width: 100%;
+  max-width: 820px;
+}
+
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px 16px 0 0;
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--gris-200);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  font-size: 2rem;
+}
+
+.logo h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--azul-oscuro);
+}
+
+.logo p {
+  font-size: 0.8rem;
+  color: var(--gris-500);
+}
+
+.estado-servidor {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--gris-700);
+  background: var(--gris-100);
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+}
+
+.punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.punto.verde {
+  background: var(--verde);
+}
+
+.punto.amarillo {
+  background: var(--amarillo);
+}
+
+.aviso-modo-web {
+  background: rgba(255, 255, 255, 0.95);
+  border-left: 4px solid var(--amarillo);
+  border-radius: 0 0 8px 8px;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 0;
+  font-size: 0.875rem;
+  color: var(--gris-700);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.aviso-modo-web p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+main {
+  background: white;
+  padding: 2rem;
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.app-footer {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
