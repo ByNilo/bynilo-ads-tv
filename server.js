@@ -977,13 +977,15 @@ app.use((err, _req, res, _next) => {
 const distPath = path.join(__dirname, 'SIC', 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api')) {
+      return next();
+    }
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor de BYNILO ADS TV corriendo en el puerto ${PORT}`);
   console.log(`Modo: ${EMISION_TV_ACTIVA ? 'transmisión TV activa' : 'solo reservas (sin PC de transmisión)'}`);
   if (EMISION_TV_ACTIVA) {
