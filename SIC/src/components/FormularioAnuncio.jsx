@@ -392,7 +392,7 @@ export default function FormularioAnuncio({ mercadoPagoActivo = false }) {
       return;
     }
 
-    if (mercadoPagoActivo && totalCarrito > 0) {
+    if (totalCarrito > 0) {
       const email = form.emailContacto.trim();
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         setError('Ingresa un correo electrónico válido para el pago con Mercado Pago.');
@@ -580,27 +580,25 @@ export default function FormularioAnuncio({ mercadoPagoActivo = false }) {
         />
       </div>
 
-      {mercadoPagoActivo && (
-        <div className="campo">
-          <label htmlFor="emailContacto">
-            Correo electrónico
-            <span className="etiqueta-opcional">Requerido para pago</span>
-          </label>
-          <input
-            id="emailContacto"
-            name="emailContacto"
-            type="email"
-            placeholder="tu@correo.com"
-            value={form.emailContacto}
-            onChange={handleChange}
-            autoComplete="email"
-            required={mercadoPagoActivo}
-          />
-          <p className="campo-ayuda">
-            Mercado Pago usa este correo para el comprobante de pago.
-          </p>
-        </div>
-      )}
+      <div className="campo">
+        <label htmlFor="emailContacto">
+          Correo electrónico
+          <span className="etiqueta-opcional">Requerido para pago</span>
+        </label>
+        <input
+          id="emailContacto"
+          name="emailContacto"
+          type="email"
+          placeholder="tu@correo.com"
+          value={form.emailContacto}
+          onChange={handleChange}
+          autoComplete="email"
+          required
+        />
+        <p className="campo-ayuda">
+          Necesario para el comprobante de pago con Mercado Pago.
+        </p>
+      </div>
 
       <div className="campo">
         <label>
