@@ -101,7 +101,7 @@ function App() {
       )}
 
       <main>
-        <FormularioAnuncio />
+        <FormularioAnuncio mercadoPagoActivo={estadoServidor?.mercadoPagoActivo === true} />
       </main>
 
       <footer className="app-footer">

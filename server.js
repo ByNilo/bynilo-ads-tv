@@ -48,6 +48,8 @@ const {
 } = require('./lib/ordenes-pendientes');
 const {
   mercadoPagoActivo,
+  estadoMercadoPago,
+  obtenerBaseUrlPublica,
   crearPreferenciaPago,
   consultarPago,
 } = require('./lib/mercadopago');
@@ -918,6 +920,10 @@ app.get('/api/health', (_req, res) => {
     reservasPendientes: EMISION_TV_ACTIVA ? 0 : listarReservasPendientes(DATA_DIR).length,
     bloquesTarifarios: obtenerResumenTarifas(),
     mercadoPagoActivo: mercadoPagoActivo(),
+    mercadoPago: {
+      ...estadoMercadoPago(),
+      baseUrlPublica: obtenerBaseUrlPublica(),
+    },
   });
 });
 
@@ -1114,7 +1120,7 @@ app.post('/api/agendar', upload.single('imagen'), async (req, res) => {
         imagenMimeType: req.file?.mimetype || null,
       });
 
-      const pago = await crearPreferenciaPago(orden);
+      const pago = await crearPreferenciaPago(orden, req);
       actualizarOrdenPendiente(DATA_DIR, orden.id, {
         preferenceId: pago.preferenceId,
       });
@@ -1133,6 +1139,7 @@ app.post('/api/agendar', upload.single('imagen'), async (req, res) => {
         console.error('[Pago] Error al crear preferencia:', errorPago.message);
         return res.status(500).json({
           error: 'No se pudo iniciar el pago con Mercado Pago. Intenta nuevamente.',
+          detalle: errorPago.message,
           semaforo: 'rojo',
         });
       }
@@ -1241,4 +1248,8 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Reservas pendientes en: ${path.join(DATA_DIR, 'reservas-pendientes')}`);
   }
   console.log(`Moderación IA: ${openai ? 'activa' : 'desactivada (configura OPENAI_API_KEY)'}`);
+  const mp = estadoMercadoPago();
+  console.log(
+    `Mercado Pago: ${mp.activo ? 'activo' : mp.tokenConfigurado ? 'token inválido o incompleto' : 'desactivado (configura MERCADOPAGO_ACCESS_TOKEN)'}`,
+  );
 });

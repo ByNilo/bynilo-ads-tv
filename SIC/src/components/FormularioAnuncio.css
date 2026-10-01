@@ -313,12 +313,51 @@
   font-size: 1.05rem;
 }
 
-.pago-mercadopago-aviso {
+.medio-pago-box {
   margin: 0;
-  padding: 0.65rem 0.85rem 0.85rem;
-  font-size: 0.78rem;
-  color: var(--gris-600);
-  border-top: 1px dashed rgba(22, 163, 74, 0.25);
+  padding: 0.85rem;
+  border-top: 1px solid rgba(22, 163, 74, 0.2);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.medio-pago-box.activo {
+  border-top-color: rgba(0, 153, 255, 0.35);
+  background: rgba(0, 153, 255, 0.06);
+}
+
+.medio-pago-box.inactivo {
+  border-top-color: rgba(202, 138, 4, 0.35);
+  background: rgba(254, 252, 232, 0.8);
+}
+
+.medio-pago-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.45rem;
+}
+
+.medio-pago-logo {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.medio-pago-nombre {
+  margin: 0.1rem 0 0;
+  font-size: 0.9rem;
+  color: var(--azul-oscuro);
+  font-weight: 600;
+}
+
+.medio-pago-detalle {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--gris-700);
+}
+
+.medio-pago-alerta {
+  color: var(--amarillo);
 }
 
 .tarifas-leyenda {

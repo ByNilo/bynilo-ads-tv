@@ -84,7 +84,7 @@ function Semaforo({ semaforo, mensaje, categorias }) {
   );
 }
 
-export default function FormularioAnuncio() {
+export default function FormularioAnuncio({ mercadoPagoActivo = false }) {
   const [form, setForm] = useState({
     rut: '',
     negocio: '',
@@ -345,7 +345,11 @@ export default function FormularioAnuncio() {
         setResultado(resultadoRojo);
         abrirModalModeracion(resultadoRojo);
       } else {
-        setError(err.error || err.mensaje || 'Error al procesar el anuncio.');
+        setError(
+          err.detalle
+            ? `${err.error || err.mensaje || 'Error al procesar el anuncio.'} (${err.detalle})`
+            : err.error || err.mensaje || 'Error al procesar el anuncio.',
+        );
       }
     } finally {
       setCargando(false);
@@ -708,9 +712,27 @@ export default function FormularioAnuncio() {
               <span>Total estimado</span>
               <strong>{formatearPrecioCLP(totalCarrito)}</strong>
             </div>
-            <p className="pago-mercadopago-aviso">
-              El pago se realiza de forma segura con Mercado Pago al confirmar.
-            </p>
+            <div className={`medio-pago-box ${mercadoPagoActivo ? 'activo' : 'inactivo'}`}>
+              <div className="medio-pago-header">
+                <span className="medio-pago-logo" aria-hidden="true">💳</span>
+                <div>
+                  <strong>Medio de pago</strong>
+                  <p className="medio-pago-nombre">Mercado Pago</p>
+                </div>
+              </div>
+              {mercadoPagoActivo ? (
+                <p className="medio-pago-detalle">
+                  Al confirmar tu anuncio serás redirigido a Mercado Pago para pagar{' '}
+                  <strong>{formatearPrecioCLP(totalCarrito)}</strong> de forma segura.
+                  Acepta tarjetas, débito y otros medios disponibles en Mercado Pago.
+                </p>
+              ) : (
+                <p className="medio-pago-detalle medio-pago-alerta">
+                  El pago en línea aún no está disponible en el servidor.
+                  Contacta a BYNILO ADS TV para completar tu reserva.
+                </p>
+              )}
+            </div>
           </div>
         )}
 
