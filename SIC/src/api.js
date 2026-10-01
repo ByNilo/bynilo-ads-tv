@@ -44,3 +44,12 @@ export async function obtenerHorarios(fecha) {
   }
   return response.json();
 }
+
+export async function obtenerEstadoOrden(ordenId) {
+  const response = await fetch(`${API_BASE}/api/pagos/orden/${encodeURIComponent(ordenId)}`);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'No se pudo consultar la orden.');
+  }
+  return data;
+}

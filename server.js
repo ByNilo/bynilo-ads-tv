@@ -35,6 +35,22 @@ const {
   guardarReservaPendiente,
   listarReservasPendientes,
 } = require('./lib/reservas-pendientes');
+const { detectarMedioComunicacion } = require('./lib/medios-comunicacion');
+const {
+  obtenerTarifaEspacio,
+  calcularTotalReserva,
+  obtenerResumenTarifas,
+} = require('./lib/tarifas');
+const {
+  guardarOrdenPendiente,
+  cargarOrdenPendiente,
+  actualizarOrdenPendiente,
+} = require('./lib/ordenes-pendientes');
+const {
+  mercadoPagoActivo,
+  crearPreferenciaPago,
+  consultarPago,
+} = require('./lib/mercadopago');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -197,6 +213,22 @@ function construirTextoModeracion(datos) {
 }
 
 async function moderarContenido(datosAnuncio, imagenBuffer, mimeType) {
+  const deteccionMedio = detectarMedioComunicacion(datosAnuncio);
+  if (deteccionMedio.detectado) {
+    console.log('[Moderación] Medio de comunicación detectado (listado):', deteccionMedio.coincidencias.join(', '));
+    return {
+      semaforo: 'amarillo',
+      categorias: ['medios de comunicación'],
+      razon: deteccionMedio.razon,
+      palabrasInfractoras: deteccionMedio.coincidencias,
+      textoSugerido: datosAnuncio.textoOferta || '',
+      sugerencias: [
+        'Los medios de comunicación y portales de noticias deben pasar revisión editorial en BYNILO ADS TV.',
+        'Si crees que es un error, contacta al equipo editorial con el nombre de tu negocio y giro comercial.',
+      ],
+    };
+  }
+
   if (!openai) {
     console.warn('[Moderación] OPENAI_API_KEY no configurada — se omite filtro IA.');
     return { semaforo: 'verde', categorias: [], razon: 'Moderación desactivada (sin API key).' };
@@ -261,8 +293,10 @@ SEMÁFORO ROJO (rechazar inmediatamente):
 - funas (denuncias públicas, exposición de personas, linchamiento mediático)
 - discriminación (racismo, xenofobia, homofobia, sexismo, discapacidad)
 
-SEMÁFORO AMARILLO (revisión editorial manual):
-- medios de comunicación (periódicos, radios, portales de noticias, programas de TV)
+SEMÁFORO AMARILLO (revisión editorial manual — OBLIGATORIO):
+- medios de comunicación (periódicos, radios, portales de noticias, programas de TV, agencias informativas)
+- Si el nombre del negocio, razón social, giro, sitio web o texto contiene: noticias, noticiero, radio, canal, TV, diario, prensa, portal informativo, redacción, o nombres de medios chilenos conocidos → AMARILLO siempre
+- Ejemplos que van a AMARILLO: "Girovisual Noticias", "Radio XYZ", "Portal Noticias del Sur", "Canal Informativo"
 - Casos ambiguos o con dudas razonables tras el análisis letra a letra de hashtags
 - Posible infracción que no es 100% clara — enviar a revisión humana
 
@@ -557,7 +591,103 @@ function parseBloques(body) {
   return null;
 }
 
-function validarBloques(bloques) {
+function confirmarReservaAnuncio({
+  bloques,
+  datosComunes,
+  solicitarFactura,
+  facturacion,
+  rut,
+  negocio,
+  opcionesValidacion = {},
+}) {
+  const errorBloques = validarBloques(bloques, opcionesValidacion);
+  if (errorBloques) {
+    throw new Error(errorBloques);
+  }
+
+  if (solicitarFactura) {
+    guardarDatosFacturacion({
+      bloques,
+      rut,
+      negocio,
+      ...facturacion,
+    });
+  }
+
+  programarMultiplesEmisiones(bloques, datosComunes);
+  return calcularTotalReserva(bloques);
+}
+
+async function confirmarReservaDesdeOrden(ordenId, paymentId = null) {
+  const orden = cargarOrdenPendiente(DATA_DIR, ordenId);
+  if (!orden) {
+    throw new Error('Orden no encontrada.');
+  }
+
+  if (orden.estado === 'pagado') {
+    return { orden, tarifas: orden.tarifas, yaConfirmada: true };
+  }
+
+  const datosComunes = {
+    rut: orden.rut,
+    negocio: orden.negocio,
+    textoOferta: orden.textoOferta,
+    imagenBuffer: orden.imagenBase64 ? Buffer.from(orden.imagenBase64, 'base64') : null,
+    imagenMimeType: orden.imagenMimeType || null,
+    redesSociales: orden.redesSociales || '',
+    contacto: orden.contacto || '',
+  };
+
+  const tarifas = confirmarReservaAnuncio({
+    bloques: orden.bloques,
+    datosComunes,
+    solicitarFactura: orden.solicitarFactura,
+    facturacion: orden.facturacion,
+    rut: orden.rut,
+    negocio: orden.negocio,
+    opcionesValidacion: { permitirYaReservado: true },
+  });
+
+  const ordenActualizada = actualizarOrdenPendiente(DATA_DIR, ordenId, {
+    estado: 'pagado',
+    paymentId,
+    pagadoEn: new Date().toISOString(),
+    tarifas,
+  });
+
+  console.log(`[Pago] Reserva confirmada tras pago: ${ordenId}`);
+  return { orden: ordenActualizada, tarifas, yaConfirmada: false };
+}
+
+async function procesarNotificacionPago(topic, resourceId) {
+  if (!mercadoPagoActivo()) return null;
+  if (topic !== 'payment' || !resourceId) return null;
+
+  const pago = await consultarPago(resourceId);
+  const ordenId = pago.external_reference;
+  const montoPagado = Math.round(Number(pago.transaction_amount || 0));
+
+  if (pago.status !== 'approved') {
+    console.log(`[Pago] Notificación ${resourceId} estado: ${pago.status}`);
+    return null;
+  }
+
+  const orden = cargarOrdenPendiente(DATA_DIR, ordenId);
+  if (!orden) {
+    console.warn(`[Pago] Orden no encontrada para referencia ${ordenId}`);
+    return null;
+  }
+
+  if (Math.round(Number(orden.tarifas?.total || 0)) !== montoPagado) {
+    console.warn(
+      `[Pago] Monto distinto en orden ${ordenId}: esperado ${orden.tarifas?.total}, recibido ${montoPagado}`,
+    );
+  }
+
+  return confirmarReservaDesdeOrden(ordenId, String(resourceId));
+}
+
+function validarBloques(bloques, opciones = {}) {
   if (!bloques || bloques.length === 0) {
     return 'Debes seleccionar al menos un bloque de emisión.';
   }
@@ -572,7 +702,11 @@ function validarBloques(bloques) {
       return 'Cada bloque debe incluir fecha y horario.';
     }
 
-    const errorHorario = validarHorarioElegido(bloque.fechaPublicacion, bloque.horarioElegido);
+    const errorHorario = validarHorarioElegido(
+      bloque.fechaPublicacion,
+      bloque.horarioElegido,
+      opciones,
+    );
     if (errorHorario) return errorHorario;
 
     const clave = claveReserva(bloque.fechaPublicacion, bloque.horarioElegido);
@@ -587,6 +721,16 @@ function validarBloques(bloques) {
 
 function reservarHorario(fechaPublicacion, horario) {
   horariosReservados.add(claveReserva(fechaPublicacion, horario));
+}
+
+function liberarHorario(fechaPublicacion, horario) {
+  horariosReservados.delete(claveReserva(fechaPublicacion, horario));
+}
+
+function liberarBloques(bloques) {
+  for (const bloque of bloques) {
+    liberarHorario(bloque.fechaPublicacion, bloque.horarioElegido);
+  }
 }
 
 function estaReservado(fechaPublicacion, horario) {
@@ -610,14 +754,21 @@ function obtenerHorariosDisponibles(fechaConsulta) {
 
   const horas = generarCatalogoHoras().map((hora) => ({
     ...hora,
-    espacios: hora.espacios.map((valor) => ({
-      valor,
-      etiqueta: valor,
-      disponible:
-        esEspacioFuturo(fechaPublicacion, valor, ahora) &&
-        !estaReservado(fechaPublicacion, valor),
-      reservado: estaReservado(fechaPublicacion, valor),
-    })),
+    espacios: hora.espacios.map((valor) => {
+      const tarifa = obtenerTarifaEspacio(valor);
+      return {
+        valor,
+        etiqueta: valor,
+        disponible:
+          esEspacioFuturo(fechaPublicacion, valor, ahora) &&
+          !estaReservado(fechaPublicacion, valor),
+        reservado: estaReservado(fechaPublicacion, valor),
+        bloqueTarifario: tarifa.bloqueNombre,
+        bloqueTarifarioId: tarifa.bloqueId,
+        precio: tarifa.precio,
+        precioFormateado: tarifa.precioFormateado,
+      };
+    }),
   }));
 
   return {
@@ -632,10 +783,11 @@ function obtenerHorariosDisponibles(fechaConsulta) {
     totalDisponibles: disponibles.length,
     dias,
     horas,
+    bloquesTarifarios: obtenerResumenTarifas(),
   };
 }
 
-function validarHorarioElegido(fechaPublicacion, horarioElegido) {
+function validarHorarioElegido(fechaPublicacion, horarioElegido, opciones = {}) {
   if (!parseFecha(fechaPublicacion)) {
     return 'Debes seleccionar un día de publicación válido.';
   }
@@ -644,7 +796,7 @@ function validarHorarioElegido(fechaPublicacion, horarioElegido) {
     return 'El horario debe ser un espacio válido de 15 segundos (grilla cada 45 seg, ej. 18:00:15).';
   }
 
-  if (estaReservado(fechaPublicacion, horarioElegido)) {
+  if (!opciones.permitirYaReservado && estaReservado(fechaPublicacion, horarioElegido)) {
     return 'Ese espacio ya está reservado. Elige otro horario.';
   }
 
@@ -764,6 +916,8 @@ app.get('/api/health', (_req, res) => {
     emisionTvActiva: EMISION_TV_ACTIVA,
     modo: EMISION_TV_ACTIVA ? 'transmision' : 'solo-reservas',
     reservasPendientes: EMISION_TV_ACTIVA ? 0 : listarReservasPendientes(DATA_DIR).length,
+    bloquesTarifarios: obtenerResumenTarifas(),
+    mercadoPagoActivo: mercadoPagoActivo(),
   });
 });
 
@@ -927,21 +1081,71 @@ app.post('/api/agendar', upload.single('imagen'), async (req, res) => {
       contacto,
     };
 
-    if (solicitarFactura) {
-      guardarDatosFacturacion({
-        bloques,
+    const tarifas = calcularTotalReserva(bloques);
+    const facturacion = solicitarFactura
+      ? {
+          rutFactura: req.body.rutFactura,
+          razonSocial: req.body.razonSocial,
+          giro: req.body.giro,
+          direccion: req.body.direccion,
+          comuna: req.body.comuna,
+          emailFactura: req.body.emailFactura,
+        }
+      : null;
+
+    if (mercadoPagoActivo() && tarifas.total > 0) {
+      for (const bloque of bloques) {
+        reservarHorario(bloque.fechaPublicacion, bloque.horarioElegido);
+      }
+
+      try {
+        const orden = guardarOrdenPendiente(DATA_DIR, {
         rut,
         negocio,
-        rutFactura: req.body.rutFactura,
-        razonSocial: req.body.razonSocial,
-        giro: req.body.giro,
-        direccion: req.body.direccion,
-        comuna: req.body.comuna,
-        emailFactura: req.body.emailFactura,
+        textoOferta,
+        contacto,
+        redesSociales: normalizarRedes(req.body.redesSociales),
+        bloques,
+        tarifas,
+        solicitarFactura,
+        facturacion,
+        emailFactura: req.body.emailFactura || '',
+        imagenBase64: req.file?.buffer ? req.file.buffer.toString('base64') : null,
+        imagenMimeType: req.file?.mimetype || null,
       });
+
+      const pago = await crearPreferenciaPago(orden);
+      actualizarOrdenPendiente(DATA_DIR, orden.id, {
+        preferenceId: pago.preferenceId,
+      });
+
+      return res.status(200).json({
+        estado: 'pago_pendiente',
+        requierePago: true,
+        ordenId: orden.id,
+        initPoint: pago.initPoint,
+        semaforo: 'verde',
+        mensaje: 'Tu anuncio fue aprobado. Completa el pago en Mercado Pago para confirmar la reserva.',
+        tarifas,
+      });
+      } catch (errorPago) {
+        liberarBloques(bloques);
+        console.error('[Pago] Error al crear preferencia:', errorPago.message);
+        return res.status(500).json({
+          error: 'No se pudo iniciar el pago con Mercado Pago. Intenta nuevamente.',
+          semaforo: 'rojo',
+        });
+      }
     }
 
-    programarMultiplesEmisiones(bloques, datosComunes);
+    confirmarReservaAnuncio({
+      bloques,
+      datosComunes,
+      solicitarFactura,
+      facturacion,
+      rut,
+      negocio,
+    });
 
     const cantidad = bloques.length;
     const mensaje = EMISION_TV_ACTIVA
@@ -958,12 +1162,55 @@ app.post('/api/agendar', upload.single('imagen'), async (req, res) => {
       semaforo: 'verde',
       bloquesConfirmados: bloques,
       totalBloques: cantidad,
+      tarifas,
     });
   } catch (error) {
     console.error('[Agendar] Error:', error);
     return res.status(500).json({
       error: 'Error interno al procesar la reserva.',
     });
+  }
+});
+
+async function manejarWebhookMercadoPago(req, res) {
+  try {
+    const topic = req.query.topic || req.query.type || req.body?.type;
+    const resourceId =
+      req.query.id ||
+      req.query['data.id'] ||
+      req.body?.data?.id ||
+      req.body?.id;
+
+    if (topic && resourceId) {
+      await procesarNotificacionPago(topic, resourceId);
+    }
+
+    return res.status(200).send('OK');
+  } catch (error) {
+    console.error('[Pago] Error webhook:', error.message);
+    return res.status(200).send('OK');
+  }
+}
+
+app.get('/api/pagos/webhook', manejarWebhookMercadoPago);
+app.post('/api/pagos/webhook', manejarWebhookMercadoPago);
+
+app.get('/api/pagos/orden/:id', async (req, res) => {
+  try {
+    const orden = cargarOrdenPendiente(DATA_DIR, req.params.id);
+    if (!orden) {
+      return res.status(404).json({ error: 'Orden no encontrada.' });
+    }
+
+    return res.json({
+      id: orden.id,
+      estado: orden.estado,
+      tarifas: orden.tarifas,
+      pagadoEn: orden.pagadoEn || null,
+      bloques: orden.bloques,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
 });
 

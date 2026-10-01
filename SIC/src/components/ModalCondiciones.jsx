@@ -9,7 +9,7 @@ const CONDICIONES = [
   {
     titulo: '2. Moderación con inteligencia artificial',
     texto:
-      'Todo aviso será moderado automáticamente con IA: el texto de la oferta, los datos ingresados y el logo o imagen adjunta (si se sube). Se rechazará contenido relacionado con política, alcohol, religión, contenido sexual, casinos, funas, discriminación y otros categorizados en semáforo rojo. Los medios de comunicación pueden quedar en revisión editorial (semáforo amarillo).',
+      'Todo aviso será moderado automáticamente con IA y un listado de medios de comunicación nacionales: el texto de la oferta, los datos ingresados y el logo o imagen adjunta (si se sube). Se rechazará contenido relacionado con política, alcohol, religión, contenido sexual, casinos, funas, discriminación y otros categorizados en semáforo rojo. Los medios de comunicación, portales de noticias y radios quedan en revisión editorial (semáforo amarillo), incluyendo negocios cuyo nombre contenga términos como noticias, radio, canal o diario.',
   },
   {
     titulo: '3. Responsabilidad del anunciante',

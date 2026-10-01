@@ -30,6 +30,10 @@ function claveBloque(fecha, horario) {
   return `${fecha}|${horario}`;
 }
 
+function formatearPrecioCLP(monto) {
+  return `$${Number(monto).toLocaleString('es-CL')}`;
+}
+
 function sanitizarContacto(valor) {
   return valor.replace(/\D/g, '');
 }
@@ -143,6 +147,11 @@ export default function FormularioAnuncio() {
     bloquesSeleccionados.map((b) => claveBloque(b.fecha, b.horario)),
   );
 
+  const totalCarrito = bloquesSeleccionados.reduce(
+    (suma, bloque) => suma + (bloque.precio || 0),
+    0,
+  );
+
   async function seleccionarDia(fecha) {
     setForm((prev) => ({
       ...prev,
@@ -176,9 +185,17 @@ export default function FormularioAnuncio() {
         setError(`Máximo ${MAX_BLOQUES} bloques por sesión.`);
         return;
       }
+      const espacio = horaSeleccionada?.espacios.find((e) => e.valor === horario);
       setBloquesSeleccionados((prev) => [
         ...prev,
-        { fecha, horario, etiquetaDia },
+        {
+          fecha,
+          horario,
+          etiquetaDia,
+          bloqueTarifario: espacio?.bloqueTarifario || '',
+          precio: espacio?.precio || 0,
+          precioFormateado: espacio?.precioFormateado || formatearPrecioCLP(0),
+        },
       ]);
     }
     setError(null);
@@ -300,6 +317,12 @@ export default function FormularioAnuncio() {
       if (data.semaforo === 'amarillo' || data.estado === 'revision') {
         setResultado(data);
         abrirModalModeracion(data);
+        return;
+      }
+
+      if (data.requierePago && data.initPoint) {
+        setMensajeCarga('Redirigiendo a Mercado Pago…');
+        window.location.href = data.initPoint;
         return;
       }
 
@@ -538,6 +561,22 @@ export default function FormularioAnuncio() {
             {bloquesSeleccionados.length}/{MAX_BLOQUES} bloques
           </span>
         </label>
+
+        {horariosData?.bloquesTarifarios?.length > 0 && (
+          <div className="tarifas-leyenda">
+            <p className="tarifas-leyenda-titulo">Valores por bloque horario (cada espacio = 15 seg en vivo)</p>
+            <ul className="tarifas-leyenda-lista">
+              {horariosData.bloquesTarifarios.map((bloque) => (
+                <li key={bloque.id}>
+                  <strong>{bloque.nombre}</strong>
+                  <span>{bloque.horaInicio} a {bloque.horaFin} hrs.</span>
+                  <span className="tarifa-precio">{bloque.precioFormateado}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {cargandoHorarios ? (
           <p className="horarios-cargando">Cargando calendario…</p>
         ) : (
@@ -613,10 +652,13 @@ export default function FormularioAnuncio() {
                             ? 'Espacio reservado'
                             : !espacio.disponible
                               ? 'Horario no disponible'
-                              : 'Click para agregar — 15 seg en vivo'
+                              : `Click para agregar — 15 seg en vivo — ${espacio.precioFormateado || ''}`
                       }
                     >
                       <span className="calendario-bloque-hora">{espacio.etiqueta}</span>
+                      {espacio.precioFormateado && espacio.disponible && (
+                        <span className="calendario-bloque-precio">{espacio.precioFormateado}</span>
+                      )}
                       {enCarrito && <span className="calendario-estado">✓ Elegido</span>}
                       {!enCarrito && espacio.reservado && (
                         <span className="calendario-estado">Reservado</span>
@@ -644,6 +686,12 @@ export default function FormularioAnuncio() {
                 <li key={claveBloque(bloque.fecha, bloque.horario)} className="bloque-item">
                   <span>
                     <strong>{bloque.etiquetaDia}</strong> — {bloque.horario}
+                    {bloque.bloqueTarifario && (
+                      <span className="bloque-item-tarifa"> · {bloque.bloqueTarifario}</span>
+                    )}
+                    {bloque.precioFormateado && (
+                      <span className="bloque-item-precio"> — {bloque.precioFormateado}</span>
+                    )}
                   </span>
                   <button
                     type="button"
@@ -656,6 +704,13 @@ export default function FormularioAnuncio() {
                 </li>
               ))}
             </ul>
+            <div className="bloques-carrito-total">
+              <span>Total estimado</span>
+              <strong>{formatearPrecioCLP(totalCarrito)}</strong>
+            </div>
+            <p className="pago-mercadopago-aviso">
+              El pago se realiza de forma segura con Mercado Pago al confirmar.
+            </p>
           </div>
         )}
 
@@ -800,11 +855,18 @@ export default function FormularioAnuncio() {
       {error && <div className="alerta-error">{error}</div>}
 
       {resultado && (
-        <Semaforo
-          semaforo={resultado.semaforo || (resultado.estado === 'revision' ? 'amarillo' : 'verde')}
-          mensaje={resultado.mensaje}
-          categorias={resultado.categorias}
-        />
+        <>
+          <Semaforo
+            semaforo={resultado.semaforo || (resultado.estado === 'revision' ? 'amarillo' : 'verde')}
+            mensaje={resultado.mensaje}
+            categorias={resultado.categorias}
+          />
+          {resultado.tarifas?.totalFormateado && (
+            <p className="horarios-seleccion">
+              Total reserva: <strong>{resultado.tarifas.totalFormateado}</strong>
+            </p>
+          )}
+        </>
       )}
 
       <div className="aviso-legal" role="note">

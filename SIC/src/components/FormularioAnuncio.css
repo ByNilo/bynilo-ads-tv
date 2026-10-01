@@ -287,6 +287,93 @@
   color: var(--rojo);
 }
 
+.bloque-item-tarifa {
+  color: var(--gris-500);
+  font-size: 0.8rem;
+}
+
+.bloque-item-precio {
+  color: var(--verde);
+  font-weight: 600;
+}
+
+.bloques-carrito-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0.85rem;
+  border-top: 1px solid rgba(22, 163, 74, 0.25);
+  background: rgba(22, 163, 74, 0.08);
+  font-size: 0.9rem;
+  color: var(--gris-700);
+}
+
+.bloques-carrito-total strong {
+  color: var(--verde);
+  font-size: 1.05rem;
+}
+
+.pago-mercadopago-aviso {
+  margin: 0;
+  padding: 0.65rem 0.85rem 0.85rem;
+  font-size: 0.78rem;
+  color: var(--gris-600);
+  border-top: 1px dashed rgba(22, 163, 74, 0.25);
+}
+
+.tarifas-leyenda {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--gris-200);
+  border-radius: 10px;
+  background: var(--gris-100);
+}
+
+.tarifas-leyenda-titulo {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--gris-700);
+}
+
+.tarifas-leyenda-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.tarifas-leyenda-lista li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  align-items: baseline;
+  font-size: 0.78rem;
+  color: var(--gris-600);
+}
+
+.tarifas-leyenda-lista strong {
+  color: var(--azul-oscuro);
+  min-width: 11rem;
+}
+
+.tarifa-precio,
+.calendario-bloque-precio {
+  color: var(--verde);
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.calendario-bloque-precio {
+  margin-left: auto;
+}
+
+.calendario-item.calendario-bloque {
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
+}
+
 .calendario-bloque-hora {
   font-variant-numeric: tabular-nums;
   font-weight: 500;
