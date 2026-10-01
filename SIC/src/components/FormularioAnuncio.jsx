@@ -320,9 +320,21 @@ export default function FormularioAnuncio({ mercadoPagoActivo = false }) {
         return;
       }
 
-      if (data.requierePago && data.initPoint) {
-        setMensajeCarga('Redirigiendo a Mercado Pago…');
+      if (data.requierePago || data.estado === 'pago_pendiente') {
+        if (!data.initPoint) {
+          setError('No se recibió el enlace de pago de Mercado Pago. Intenta nuevamente.');
+          return;
+        }
+        setMensajeCarga('Redirigiendo a Mercado Pago para completar el pago…');
+        setCargando(true);
         window.location.href = data.initPoint;
+        return;
+      }
+
+      if (mercadoPagoActivo && totalCarrito > 0 && data.estado === 'exito') {
+        setError(
+          'La reserva se procesó sin pasar por Mercado Pago. No se realizó el cobro. Intenta nuevamente o contáctanos.',
+        );
         return;
       }
 

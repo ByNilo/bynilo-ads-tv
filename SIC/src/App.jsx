@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import FormularioAnuncio from './components/FormularioAnuncio';
-import { obtenerEstadoServidor, obtenerEstadoOrden } from './api';
+import { obtenerEstadoServidor, obtenerEstadoOrden, confirmarRetornoPago } from './api';
 import './App.css';
 
 function App() {
@@ -21,26 +21,45 @@ function App() {
     if (!resultadoPago) return;
 
     if (resultadoPago === 'exitoso' && ordenId) {
-      obtenerEstadoOrden(ordenId)
-        .then((orden) => {
-          if (orden.estado === 'pagado') {
+      const paymentId = params.get('payment_id') || params.get('collection_id');
+
+      const mostrarEstadoOrden = async () => {
+        const orden = await obtenerEstadoOrden(ordenId);
+        if (orden.estado === 'pagado') {
+          setAvisoPago({
+            tipo: 'exito',
+            mensaje: `Pago confirmado. Tu reserva quedó registrada por ${orden.tarifas?.totalFormateado || 'el monto indicado'}.`,
+          });
+        } else {
+          setAvisoPago({
+            tipo: 'pendiente',
+            mensaje: 'Pago recibido. Estamos confirmando tu reserva, esto puede tardar unos segundos.',
+          });
+        }
+      };
+
+      if (paymentId) {
+        confirmarRetornoPago(ordenId, paymentId)
+          .then((resultado) => {
             setAvisoPago({
               tipo: 'exito',
-              mensaje: `Pago confirmado. Tu reserva quedó registrada por ${orden.tarifas?.totalFormateado || 'el monto indicado'}.`,
+              mensaje: `Pago confirmado. Tu reserva quedó registrada por ${resultado.tarifas?.totalFormateado || 'el monto indicado'}.`,
             });
-          } else {
+          })
+          .catch(() => mostrarEstadoOrden().catch(() => {
             setAvisoPago({
               tipo: 'pendiente',
-              mensaje: 'Pago recibido. Estamos confirmando tu reserva, esto puede tardar unos segundos.',
+              mensaje: 'Pago en proceso. Si no ves tu reserva confirmada, contáctanos con tu comprobante.',
             });
-          }
-        })
-        .catch(() => {
+          }));
+      } else {
+        mostrarEstadoOrden().catch(() => {
           setAvisoPago({
             tipo: 'pendiente',
             mensaje: 'Pago en proceso. Si no ves tu reserva confirmada, contáctanos con tu comprobante.',
           });
         });
+      }
     } else if (resultadoPago === 'fallido') {
       setAvisoPago({
         tipo: 'error',

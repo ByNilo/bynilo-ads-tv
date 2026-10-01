@@ -53,3 +53,16 @@ export async function obtenerEstadoOrden(ordenId) {
   }
   return data;
 }
+
+export async function confirmarRetornoPago(ordenId, paymentId) {
+  const response = await fetch(`${API_BASE}/api/pagos/confirmar-retorno`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ordenId, paymentId }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'No se pudo confirmar el pago.');
+  }
+  return data;
+}

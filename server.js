@@ -1221,6 +1221,48 @@ app.get('/api/pagos/orden/:id', async (req, res) => {
   }
 });
 
+app.post('/api/pagos/confirmar-retorno', async (req, res) => {
+  try {
+    const { ordenId, paymentId } = req.body || {};
+
+    if (!ordenId || !paymentId) {
+      return res.status(400).json({ error: 'Faltan ordenId o paymentId.' });
+    }
+
+    if (!mercadoPagoActivo()) {
+      return res.status(503).json({ error: 'Mercado Pago no está configurado.' });
+    }
+
+    const pago = await consultarPago(paymentId);
+    const referencia = pago.external_reference || pago.externalReference;
+
+    if (referencia !== ordenId) {
+      return res.status(400).json({ error: 'El pago no corresponde a esta orden.' });
+    }
+
+    if (pago.status !== 'approved') {
+      return res.status(200).json({
+        estado: pago.status,
+        mensaje: 'El pago aún no está aprobado.',
+        ordenId,
+      });
+    }
+
+    const resultado = await confirmarReservaDesdeOrden(ordenId, String(paymentId));
+
+    return res.status(200).json({
+      estado: 'pagado',
+      mensaje: 'Pago confirmado y reserva registrada.',
+      ordenId,
+      tarifas: resultado.tarifas,
+      yaConfirmada: resultado.yaConfirmada,
+    });
+  } catch (error) {
+    console.error('[Pago] Error confirmar retorno:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 app.use((err, _req, res, _next) => {
   if (err instanceof multer.MulterError) {
     return res.status(400).json({ error: `Error de archivo: ${err.message}` });
