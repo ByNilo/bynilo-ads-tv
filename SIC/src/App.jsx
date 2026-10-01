@@ -120,7 +120,10 @@ function App() {
       )}
 
       <main>
-        <FormularioAnuncio mercadoPagoActivo={estadoServidor?.mercadoPagoActivo === true} />
+        <FormularioAnuncio
+          mercadoPagoActivo={estadoServidor?.mercadoPagoActivo === true}
+          mercadoPagoSandbox={estadoServidor?.mercadoPago?.sandbox === true}
+        />
       </main>
 
       <footer className="app-footer">

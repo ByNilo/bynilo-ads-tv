@@ -84,7 +84,10 @@ function Semaforo({ semaforo, mensaje, categorias }) {
   );
 }
 
-export default function FormularioAnuncio({ mercadoPagoActivo = false }) {
+export default function FormularioAnuncio({
+  mercadoPagoActivo = false,
+  mercadoPagoSandbox = false,
+}) {
   const [form, setForm] = useState({
     rut: '',
     negocio: '',
@@ -763,11 +766,34 @@ export default function FormularioAnuncio({ mercadoPagoActivo = false }) {
                 </div>
               </div>
               {mercadoPagoActivo ? (
-                <p className="medio-pago-detalle">
-                  Al confirmar tu anuncio serás redirigido a Mercado Pago para pagar{' '}
-                  <strong>{formatearPrecioCLP(totalCarrito)}</strong> de forma segura.
-                  Acepta tarjetas, débito y otros medios disponibles en Mercado Pago.
-                </p>
+                <>
+                  <p className="medio-pago-detalle">
+                    Al confirmar tu anuncio serás redirigido a Mercado Pago para pagar{' '}
+                    <strong>{formatearPrecioCLP(totalCarrito)}</strong> de forma segura.
+                    Acepta tarjetas, débito y otros medios disponibles en Mercado Pago.
+                  </p>
+                  {mercadoPagoSandbox && (
+                    <details className="medio-pago-prueba">
+                      <summary>Modo prueba: cómo pagar sin errores</summary>
+                      <ol>
+                        <li>Abre una ventana de incógnito.</li>
+                        <li>
+                          Inicia sesión en Mercado Pago con tu cuenta de prueba{' '}
+                          <strong>comprador</strong> (panel Developers → Cuentas de prueba).
+                        </li>
+                        <li>
+                          Tarjeta Visa: <code>4168 8188 4444 7115</code>, venc.{' '}
+                          <code>11/30</code>, CVV <code>123</code>.
+                        </li>
+                        <li>
+                          Titular: <code>APRO</code>. Documento: <strong>Otro</strong>, número{' '}
+                          <code>123456789</code>.
+                        </li>
+                        <li>Si aparece cuotas, elige 1 cuota sin interés.</li>
+                      </ol>
+                    </details>
+                  )}
+                </>
               ) : (
                 <p className="medio-pago-detalle medio-pago-alerta">
                   El pago en línea aún no está disponible en el servidor.

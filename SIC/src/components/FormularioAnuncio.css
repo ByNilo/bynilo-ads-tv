@@ -360,6 +360,27 @@
   color: var(--amarillo);
 }
 
+.medio-pago-prueba {
+  margin-top: 0.75rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--gris-700);
+}
+
+.medio-pago-prueba summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.medio-pago-prueba ol {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.medio-pago-prueba li + li {
+  margin-top: 0.35rem;
+}
+
 .tarifas-leyenda {
   margin-bottom: 1rem;
   padding: 0.85rem 1rem;

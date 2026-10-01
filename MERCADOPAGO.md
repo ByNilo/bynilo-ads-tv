@@ -63,7 +63,7 @@ Si **no** configuras `MERCADOPAGO_ACCESS_TOKEN`, el sitio funciona como antes: r
 ## Pruebas (Chile)
 
 1. Usa credenciales de **prueba** del vendedor (`MERCADOPAGO_SANDBOX=true`).
-2. **No uses** `MERCADOPAGO_SANDBOX_URL=true` salvo que falle init_point — en Chile suele funcionar mejor la URL normal (`init_point`).
+2. En modo prueba el servidor usa automáticamente la URL **sandbox** de Mercado Pago. Solo define `MERCADOPAGO_SANDBOX_URL=false` si necesitas forzar la URL de producción.
 3. Verifica `/api/health` → `"mercadoPagoActivo": true`.
 
 ### Tarjeta de prueba (pago aprobado)
@@ -78,13 +78,20 @@ Si **no** configuras `MERCADOPAGO_ACCESS_TOKEN`, el sitio funciona como antes: r
 
 Documentación: https://www.mercadopago.cl/developers/es/docs/checkout-pro/integration-test/test-purchases
 
-### Si el pago se queda trabado
+### Si el botón PAGAR está deshabilitado o el pago se queda trabado
 
-1. Usa ventana **incógnito**.
-2. Titular debe ser exactamente **`APRO`** (aprobado).
-3. No uses tarjeta real en modo prueba.
-4. Opcional: crea **cuenta comprador de prueba** en Mercado Pago Developers → Cuentas de prueba, e inicia sesión en MP antes de pagar.
-5. Ingresa **correo válido** en el formulario antes de confirmar.
+1. **Ventana incógnito** (evita mezclar tu cuenta real con el modo prueba).
+2. **Inicia sesión como comprador de prueba** antes de pagar:
+   - [Mercado Pago Developers](https://www.mercadopago.cl/developers/panel/app) → tu app → **Cuentas de prueba** → tipo **Comprador**.
+   - Usa ese usuario y contraseña en [mercadopago.cl](https://www.mercadopago.cl) dentro de la ventana incógnito.
+3. **Titular de la tarjeta:** exactamente `APRO` (todo en mayúsculas).
+4. **Documento:** tipo **Otro** (no RUT) y número `123456789` (9 dígitos).
+5. **Cuotas:** si aparece selector, elige **1 cuota**.
+6. Marca la casilla de **términos y condiciones** si Mercado Pago la muestra.
+7. No uses tarjeta real en modo prueba.
+8. Ingresa **correo válido** en el formulario de BYNILO antes de confirmar.
+
+> El servidor en modo prueba redirige al checkout **sandbox** de Mercado Pago. Si entras al checkout de producción, las tarjetas de prueba no funcionan y el botón PAGAR puede quedar bloqueado.
 
 ## Archivos del proyecto
 
