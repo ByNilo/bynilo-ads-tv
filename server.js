@@ -1100,6 +1100,14 @@ app.post('/api/agendar', upload.single('imagen'), async (req, res) => {
       : null;
 
     if (mercadoPagoActivo() && tarifas.total > 0) {
+      const emailPago = req.body.emailContacto?.trim() || req.body.emailFactura?.trim() || '';
+      if (!emailPago || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailPago)) {
+        return res.status(400).json({
+          error: 'Ingresa un correo electrónico válido para procesar el pago con Mercado Pago.',
+          semaforo: 'rojo',
+        });
+      }
+
       for (const bloque of bloques) {
         reservarHorario(bloque.fechaPublicacion, bloque.horarioElegido);
       }
@@ -1116,6 +1124,7 @@ app.post('/api/agendar', upload.single('imagen'), async (req, res) => {
         solicitarFactura,
         facturacion,
         emailFactura: req.body.emailFactura || '',
+        emailPago: req.body.emailContacto?.trim() || req.body.emailFactura?.trim() || '',
         imagenBase64: req.file?.buffer ? req.file.buffer.toString('base64') : null,
         imagenMimeType: req.file?.mimetype || null,
       });

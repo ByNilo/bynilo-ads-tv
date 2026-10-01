@@ -60,11 +60,31 @@ Esta configuración es para **Cursor IDE** (asistente de desarrollo):
 
 Si **no** configuras `MERCADOPAGO_ACCESS_TOKEN`, el sitio funciona como antes: reserva directa sin pago en línea.
 
-## Pruebas
+## Pruebas (Chile)
 
-1. Usa credenciales de **prueba** (`MERCADOPAGO_SANDBOX=true`).
-2. Tarjetas de prueba: https://www.mercadopago.cl/developers/es/docs/checkout-pro/additional-content/test-cards
-3. Verifica `/api/health` → `"mercadoPagoActivo": true`
+1. Usa credenciales de **prueba** del vendedor (`MERCADOPAGO_SANDBOX=true`).
+2. **No uses** `MERCADOPAGO_SANDBOX_URL=true` salvo que falle init_point — en Chile suele funcionar mejor la URL normal (`init_point`).
+3. Verifica `/api/health` → `"mercadoPagoActivo": true`.
+
+### Tarjeta de prueba (pago aprobado)
+
+| Campo | Valor |
+|-------|--------|
+| Número | `4168 8188 4444 7115` (Visa) |
+| Vencimiento | `11/30` |
+| CVV | `123` |
+| Titular | `APRO` |
+| RUT/Documento | Otro — `123456789` |
+
+Documentación: https://www.mercadopago.cl/developers/es/docs/checkout-pro/integration-test/test-purchases
+
+### Si el pago se queda trabado
+
+1. Usa ventana **incógnito**.
+2. Titular debe ser exactamente **`APRO`** (aprobado).
+3. No uses tarjeta real en modo prueba.
+4. Opcional: crea **cuenta comprador de prueba** en Mercado Pago Developers → Cuentas de prueba, e inicia sesión en MP antes de pagar.
+5. Ingresa **correo válido** en el formulario antes de confirmar.
 
 ## Archivos del proyecto
 

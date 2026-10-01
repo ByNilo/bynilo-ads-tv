@@ -91,6 +91,7 @@ export default function FormularioAnuncio({ mercadoPagoActivo = false }) {
     textoOferta: '',
     redesSociales: '',
     contacto: '',
+    emailContacto: '',
     fechaElegida: '',
     horaElegida: '',
   });
@@ -293,6 +294,7 @@ export default function FormularioAnuncio({ mercadoPagoActivo = false }) {
     const redesFormateadas = formatearRedesParaEnvio(form.redesSociales);
     if (redesFormateadas) formData.append('redesSociales', redesFormateadas);
     if (form.contacto.trim()) formData.append('contacto', form.contacto.trim());
+    if (form.emailContacto.trim()) formData.append('emailContacto', form.emailContacto.trim());
     formData.append(
       'bloques',
       JSON.stringify(
@@ -388,6 +390,14 @@ export default function FormularioAnuncio({ mercadoPagoActivo = false }) {
     if (!aceptaCondiciones) {
       setError('Debes aceptar las condiciones de uso para confirmar tu anuncio.');
       return;
+    }
+
+    if (mercadoPagoActivo && totalCarrito > 0) {
+      const email = form.emailContacto.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setError('Ingresa un correo electrónico válido para el pago con Mercado Pago.');
+        return;
+      }
     }
 
     const textoActual = form.textoOferta.trim();
@@ -569,6 +579,28 @@ export default function FormularioAnuncio({ mercadoPagoActivo = false }) {
           pattern="[0-9]*"
         />
       </div>
+
+      {mercadoPagoActivo && (
+        <div className="campo">
+          <label htmlFor="emailContacto">
+            Correo electrónico
+            <span className="etiqueta-opcional">Requerido para pago</span>
+          </label>
+          <input
+            id="emailContacto"
+            name="emailContacto"
+            type="email"
+            placeholder="tu@correo.com"
+            value={form.emailContacto}
+            onChange={handleChange}
+            autoComplete="email"
+            required={mercadoPagoActivo}
+          />
+          <p className="campo-ayuda">
+            Mercado Pago usa este correo para el comprobante de pago.
+          </p>
+        </div>
+      )}
 
       <div className="campo">
         <label>
